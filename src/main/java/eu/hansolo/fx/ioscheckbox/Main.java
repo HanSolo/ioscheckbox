@@ -36,12 +36,15 @@ public class Main extends Application {
 
     @Override public void init() {
         checkBox1 = IosCheckBoxBuilder.create()
+                                      .prefSize(76, 46)
                                       .checked(true)
                                       .build();
         checkBox2 = IosCheckBoxBuilder.create()
+                                      .prefSize(76, 46)
                                       .checkedColor(Color.RED)
                                       .build();
         checkBox3 = IosCheckBoxBuilder.create()
+                                      .prefSize(76, 46)
                                       .checkedColor(Color.CORNFLOWERBLUE)
                                       .showOnOffText(true)
                                       .build();
