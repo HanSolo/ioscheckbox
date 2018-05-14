@@ -1,0 +1,42 @@
+/*
+ * Copyright (c) 2018 by Gerrit Grunwald
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.ios-checkbox {
+    -background-color: rgb(229,229,229);
+    -checked-color   : rgb(75,216,99);
+    -knob-color      : rgb(255, 255, 255);
+}
+
+.ios-checkbox .background-area {
+    -fx-fill: -background-color;
+}
+
+.ios-checkbox .one {
+    -fx-fill: rgb(255, 255, 255);
+}
+
+.ios-checkbox .main-area {
+    -fx-fill: linear-gradient(from 0% 0% to 100% 0%, rgb(244, 244, 244) 35%, rgb(255, 255, 255) 80%);
+}
+
+.ios-checkbox .zero {
+    -fx-fill  : null;
+    -fx-stroke: rgb(175, 175, 175);
+}
+
+.ios-checkbox .knob {
+    -fx-fill: -knob-color;
+}
