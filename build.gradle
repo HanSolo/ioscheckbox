@@ -11,6 +11,10 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+dependencies {}
+
+// start the demo from gradle
+task Demo(type: JavaExec) {
+    main = "eu.hansolo.fx.ioscheckbox.Main"
+    classpath = sourceSets.main.runtimeClasspath
 }
