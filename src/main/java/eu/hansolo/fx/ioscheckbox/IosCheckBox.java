@@ -29,9 +29,11 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.DoublePropertyBase;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.Property;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.css.CssMetaData;
-import javafx.css.SimpleStyleableObjectProperty;
 import javafx.css.Styleable;
 import javafx.css.StyleableProperty;
 import javafx.css.StyleablePropertyFactory;
@@ -69,7 +71,6 @@ public class IosCheckBox extends Region {
     private static final double                                MAXIMUM_HEIGHT   = 1024;
     private static final double                                ASPECT_RATIO     = PREFERRED_HEIGHT / PREFERRED_WIDTH;
     private static final StyleablePropertyFactory<IosCheckBox> FACTORY          = new StyleablePropertyFactory<>(Region.getClassCssMetaData());
-    private static final CssMetaData<IosCheckBox, Color>       CHECKED_COLOR    = FACTORY.createColorCssMetaData("-checked-color", s -> s.checkedColor, Color.rgb(75,216,99), false);
     private        final StyleableProperty<Color>              checkedColor;
     private              double                                width;
     private              double                                height;
@@ -95,7 +96,7 @@ public class IosCheckBox extends Region {
     // ******************** Constructors **************************************
     public IosCheckBox() {
         _checked       = false;
-        checkedColor   = new SimpleStyleableObjectProperty<>(CHECKED_COLOR, this, "checkedColor");
+        checkedColor   = FACTORY.createStyleableColorProperty(this, "checkedColor", "-checked-color", s -> s.checkedColor);
         _duration      = 250;
         _showOnOffText = false;
         settings       = new HashMap<>();
@@ -158,6 +159,7 @@ public class IosCheckBox extends Region {
     private void registerListeners() {
         widthProperty().addListener(o -> resize());
         heightProperty().addListener(o -> resize());
+        disabledProperty().addListener(o -> setOpacity(isDisabled() ? 0.5 : 1.0));
         backgroundArea.addEventHandler(MouseEvent.MOUSE_PRESSED, e -> setChecked(!isChecked()));
         if (null != getScene()) {
             setupBinding();
@@ -217,9 +219,7 @@ public class IosCheckBox extends Region {
                     } else if ("padding".equals(key)) {
                         setPadding(((ObjectProperty<Insets>) settings.get(key)).get());
                     } // Control specific settings
-                    else if ("checked".equals(key)) {
-                        setChecked(((BooleanProperty) settings.get(key)).get());
-                    } else if ("checkedColor".equals(key)) {
+                    else if ("checkedColor".equals(key)) {
                         setCheckedColor(((ObjectProperty<Color>) settings.get(key)).get());
                     } else if ("showOnOffText".equals(key)) {
                         setShowOnOffText(((BooleanProperty) settings.get(key)).get());
@@ -227,6 +227,9 @@ public class IosCheckBox extends Region {
                         setDuration(((DoubleProperty) settings.get(key)).get());
                     }
                 }
+
+                if (settings.containsKey("checked")) { setChecked(((BooleanProperty) settings.get("checked")).get()); }
+
                 settings.clear();
             }
         });
@@ -249,6 +252,7 @@ public class IosCheckBox extends Region {
 
     public boolean isChecked() { return null == checked ? _checked : checked.get(); }
     public void setChecked(final boolean CHECKED) {
+        if (null == showing) { settings.put("checked", new SimpleBooleanProperty(CHECKED)); return; }
         if (null == checked) {
             _checked = CHECKED;
             if (_checked) {
@@ -278,11 +282,15 @@ public class IosCheckBox extends Region {
     }
 
     public Color getCheckedColor() { return checkedColor.getValue(); }
-    public void setCheckedColor(final Color COLOR) { checkedColor.setValue(COLOR); }
+    public void setCheckedColor(final Color COLOR) {
+        if (null == showing) { settings.put("checkedColor", new SimpleObjectProperty<>(COLOR)); return; }
+        checkedColor.setValue(COLOR);
+    }
     public ObjectProperty<Color> checkedColorProperty() { return (ObjectProperty<Color>) checkedColor; }
 
     public double getDuration() { return null == duration ? _duration : duration.get(); }
     public void setDuration(final double DURATION) {
+        if (null == showing) { settings.put("duration", new SimpleDoubleProperty(DURATION)); return; }
         if (null == duration) {
             _duration = clamp(MIN_DURATION, MAX_DURATION, DURATION);
         } else {
@@ -302,6 +310,7 @@ public class IosCheckBox extends Region {
 
     public boolean getShowOnOffText() { return null == showOnOffText ? _showOnOffText : showOnOffText.get(); }
     public void setShowOnOffText(final boolean SHOW) {
+        if (null == showing) { settings.put("setShowOnOffText", new SimpleBooleanProperty(SHOW)); return; }
         if (null == showOnOffText) {
             _showOnOffText = SHOW;
             one.setVisible(SHOW);

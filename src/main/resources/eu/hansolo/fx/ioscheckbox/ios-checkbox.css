@@ -15,8 +15,8 @@
  */
 
 .ios-checkbox {
-    -background-color: rgb(229,229,229);
-    -checked-color   : rgb(75,216,99);
+    -background-color: rgb(229, 229, 229);
+    -checked-color   : rgb(75, 216, 99);
     -knob-color      : rgb(255, 255, 255);
 }
 

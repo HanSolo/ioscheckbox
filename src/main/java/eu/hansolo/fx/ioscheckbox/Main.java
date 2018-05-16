@@ -45,6 +45,7 @@ public class Main extends Application {
                                       .build();
         checkBox3 = IosCheckBoxBuilder.create()
                                       .prefSize(76, 46)
+                                      .checked(true)
                                       .checkedColor(Color.CORNFLOWERBLUE)
                                       .showOnOffText(true)
                                       .build();
@@ -59,6 +60,8 @@ public class Main extends Application {
         stage.setTitle("iOS CheckBox");
         stage.setScene(scene);
         stage.show();
+
+        //checkBox3.setDisable(true);
     }
 
     @Override public void stop() {
