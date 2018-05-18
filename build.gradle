@@ -15,6 +15,6 @@ dependencies {}
 
 // start the demo from gradle
 task Demo(type: JavaExec) {
-    main = "eu.hansolo.fx.ioscheckbox.Main"
+    main = "eu.hansolo.fx.ioswitch.Main"
     classpath = sourceSets.main.runtimeClasspath
 }

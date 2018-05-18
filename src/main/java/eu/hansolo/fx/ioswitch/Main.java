@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package eu.hansolo.fx.ioscheckbox;
+package eu.hansolo.fx.ioswitch;
 
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -30,25 +30,25 @@ import javafx.scene.Scene;
  * Time: 12:16
  */
 public class Main extends Application {
-    private IosCheckBox checkBox1;
-    private IosCheckBox checkBox2;
-    private IosCheckBox checkBox3;
+    private IosSwitch checkBox1;
+    private IosSwitch checkBox2;
+    private IosSwitch checkBox3;
 
     @Override public void init() {
-        checkBox1 = IosCheckBoxBuilder.create()
-                                      .prefSize(76, 46)
-                                      .checked(true)
-                                      .build();
-        checkBox2 = IosCheckBoxBuilder.create()
-                                      .prefSize(76, 46)
-                                      .checkedColor(Color.RED)
-                                      .build();
-        checkBox3 = IosCheckBoxBuilder.create()
-                                      .prefSize(76, 46)
-                                      .checked(true)
-                                      .checkedColor(Color.CORNFLOWERBLUE)
-                                      .showOnOffText(true)
-                                      .build();
+        checkBox1 = IosSwitchBuilder.create()
+                                    .prefSize(76, 46)
+                                    .selected(true)
+                                    .build();
+        checkBox2 = IosSwitchBuilder.create()
+                                    .prefSize(76, 46)
+                                    .selectedColor(Color.RED)
+                                    .build();
+        checkBox3 = IosSwitchBuilder.create()
+                                    .prefSize(76, 46)
+                                    .selected(true)
+                                    .selectedColor(Color.CORNFLOWERBLUE)
+                                    .showOnOffText(true)
+                                    .build();
     }
 
     @Override public void start(Stage stage) {

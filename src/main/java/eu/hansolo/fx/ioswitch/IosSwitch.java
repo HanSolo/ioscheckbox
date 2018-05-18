@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package eu.hansolo.fx.ioscheckbox;
+package eu.hansolo.fx.ioswitch;
 
+import javafx.animation.AnimationTimer;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -60,43 +61,59 @@ import java.util.List;
  * Time: 11:15
  */
 @DefaultProperty("children")
-public class IosCheckBox extends Region {
-    public  static final double                                MIN_DURATION     = 10;
-    public  static final double                                MAX_DURATION     = 500;
-    private static final double                                PREFERRED_WIDTH  = 38;
-    private static final double                                PREFERRED_HEIGHT = 23;
-    private static final double                                MINIMUM_WIDTH    = 20;
-    private static final double                                MINIMUM_HEIGHT   = 12;
-    private static final double                                MAXIMUM_WIDTH    = 1024;
-    private static final double                                MAXIMUM_HEIGHT   = 1024;
-    private static final double                                ASPECT_RATIO     = PREFERRED_HEIGHT / PREFERRED_WIDTH;
-    private static final StyleablePropertyFactory<IosCheckBox> FACTORY          = new StyleablePropertyFactory<>(Region.getClassCssMetaData());
-    private        final StyleableProperty<Color>              checkedColor;
-    private              double                                width;
-    private              double                                height;
-    private              DropShadow                            dropShadow;
-    private              Rectangle                             backgroundArea;
-    private              Rectangle                             mainArea;
-    private              Circle                                knob;
-    private              Circle                                zero;
-    private              Rectangle                             one;
-    private              Pane                                  pane;
-    private              boolean                               _checked;
-    private              BooleanProperty                       checked;
-    private              double                                _duration;
-    private              DoubleProperty                        duration;
-    private              boolean                               _showOnOffText;
-    private              BooleanProperty                       showOnOffText;
-    private              Timeline                              timeline;
-    private              BooleanBinding                        showing;
-    private              HashMap<String, Property>             settings;
+public class IosSwitch extends Region {
+    public  static final double                              MIN_DURATION     = 10;
+    public  static final double                              MAX_DURATION     = 500;
+    private static final double                              PREFERRED_WIDTH  = 38;
+    private static final double                              PREFERRED_HEIGHT = 23;
+    private static final double                              MINIMUM_WIDTH    = 20;
+    private static final double                              MINIMUM_HEIGHT   = 12;
+    private static final double                              MAXIMUM_WIDTH    = 1024;
+    private static final double                              MAXIMUM_HEIGHT   = 1024;
+    private static final double                              ASPECT_RATIO     = PREFERRED_HEIGHT / PREFERRED_WIDTH;
+    private static final long                                LONG_PRESS_TIME  = 200_000_000l;
+    private static final StyleablePropertyFactory<IosSwitch> FACTORY          = new StyleablePropertyFactory<>(Region.getClassCssMetaData());
+    private        final StyleableProperty<Color>            selectedColor;
+    private              double                              width;
+    private              double                              height;
+    private              DropShadow                          dropShadow;
+    private              Rectangle                           backgroundArea;
+    private              Rectangle                           mainArea;
+    private              Rectangle                           knob;
+    private              Circle                              zero;
+    private              Rectangle                           one;
+    private              Pane                                pane;
+    private              long                                pressStart;
+    private              AnimationTimer                      holdTimer;
+    private              boolean                             _selected;
+    private              BooleanProperty                     selected;
+    private              double                              _duration;
+    private              DoubleProperty                      duration;
+    private              boolean                             _showOnOffText;
+    private              BooleanProperty                     showOnOffText;
+    private              Timeline                            timeline;
+    private              BooleanBinding                      showing;
+    private              HashMap<String, Property>           settings;
 
 
 
     // ******************** Constructors **************************************
-    public IosCheckBox() {
-        _checked       = false;
-        checkedColor   = FACTORY.createStyleableColorProperty(this, "checkedColor", "-checked-color", s -> s.checkedColor);
+    public IosSwitch() {
+        pressStart     = System.nanoTime();
+        holdTimer      = new AnimationTimer() {
+            @Override public void handle(final long now) {
+                if (now - pressStart > LONG_PRESS_TIME) {
+                    holdTimer.stop();
+                    if (isSelected()) {
+                        animateToPreDeselect();
+                    } else {
+                        animateToPreSelect();
+                    }
+                }
+            }
+        };
+        _selected      = false;
+        selectedColor  = FACTORY.createStyleableColorProperty(this, "selectedColor", "-selected-color", s -> s.selectedColor);
         _duration      = 250;
         _showOnOffText = false;
         settings       = new HashMap<>();
@@ -117,14 +134,14 @@ public class IosCheckBox extends Region {
             }
         }
 
-        getStyleClass().add("ios-checkbox");
+        getStyleClass().add("ios-switch");
 
         dropShadow = new DropShadow(BlurType.GAUSSIAN, Color.rgb(0, 0, 0, 0.25), 10.0, 0.0, 0, 5);
 
         backgroundArea = new Rectangle();
         backgroundArea.getStyleClass().add("background-area");
-        if (isChecked()) {
-            backgroundArea.setFill(getCheckedColor());
+        if (isSelected()) {
+            backgroundArea.setFill(getSelectedColor());
         }
 
         one = new Rectangle();
@@ -135,7 +152,7 @@ public class IosCheckBox extends Region {
         mainArea = new Rectangle();
         mainArea.getStyleClass().add("main-area");
         mainArea.setMouseTransparent(true);
-        if (isChecked()) {
+        if (isSelected()) {
             mainArea.setOpacity(0);
             mainArea.setScaleX(0);
             mainArea.setScaleY(0);
@@ -146,7 +163,7 @@ public class IosCheckBox extends Region {
         zero.setMouseTransparent(true);
         zero.setVisible(false);
 
-        knob = new Circle();
+        knob = new Rectangle();
         knob.getStyleClass().add("knob");
         knob.setEffect(dropShadow);
         knob.setMouseTransparent(true);
@@ -160,7 +177,11 @@ public class IosCheckBox extends Region {
         widthProperty().addListener(o -> resize());
         heightProperty().addListener(o -> resize());
         disabledProperty().addListener(o -> setOpacity(isDisabled() ? 0.5 : 1.0));
-        backgroundArea.addEventHandler(MouseEvent.MOUSE_PRESSED, e -> setChecked(!isChecked()));
+        backgroundArea.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> setSelected(!isSelected()));
+        backgroundArea.addEventHandler(MouseEvent.MOUSE_PRESSED, e -> {
+            pressStart = System.nanoTime();
+            holdTimer.start();
+        });
         if (null != getScene()) {
             setupBinding();
         } else {
@@ -219,8 +240,8 @@ public class IosCheckBox extends Region {
                     } else if ("padding".equals(key)) {
                         setPadding(((ObjectProperty<Insets>) settings.get(key)).get());
                     } // Control specific settings
-                    else if ("checkedColor".equals(key)) {
-                        setCheckedColor(((ObjectProperty<Color>) settings.get(key)).get());
+                    else if ("selectedColor".equals(key)) {
+                        setSelectedColor(((ObjectProperty<Color>) settings.get(key)).get());
                     } else if ("showOnOffText".equals(key)) {
                         setShowOnOffText(((BooleanProperty) settings.get(key)).get());
                     } else if ("duration".equals(key)) {
@@ -228,7 +249,7 @@ public class IosCheckBox extends Region {
                     }
                 }
 
-                if (settings.containsKey("checked")) { setChecked(((BooleanProperty) settings.get("checked")).get()); }
+                if (settings.containsKey("selected")) { setSelected(((BooleanProperty) settings.get("selected")).get()); }
 
                 settings.clear();
             }
@@ -250,43 +271,44 @@ public class IosCheckBox extends Region {
 
     @Override public ObservableList<Node> getChildren() { return super.getChildren(); }
 
-    public boolean isChecked() { return null == checked ? _checked : checked.get(); }
-    public void setChecked(final boolean CHECKED) {
-        if (null == showing) { settings.put("checked", new SimpleBooleanProperty(CHECKED)); return; }
-        if (null == checked) {
-            _checked = CHECKED;
-            if (_checked) {
-                animateToChecked();
+    public boolean isSelected() { return null == selected ? _selected : selected.get(); }
+    public void setSelected(final boolean SELECTED) {
+        if (null == showing) { settings.put("selected", new SimpleBooleanProperty(SELECTED)); return; }
+        holdTimer.stop();
+        if (null == selected) {
+            _selected = SELECTED;
+            if (_selected) {
+                animateToSelect();
             } else {
-                animateToUnchecked();
+                animateToDeselect();
             }
         } else {
-            checked.set(CHECKED);
+            selected.set(SELECTED);
         }
     }
-    public BooleanProperty checkedProperty() {
-        if (null == checked) {
-            checked = new BooleanPropertyBase(_checked) {
+    public BooleanProperty selectedProperty() {
+        if (null == selected) {
+            selected = new BooleanPropertyBase(_selected) {
                 @Override protected void invalidated() {
                     if (get()) {
-                        animateToChecked();
+                        animateToSelect();
                     } else {
-                        animateToUnchecked();
+                        animateToDeselect();
                     }
                 }
-                @Override public Object getBean() { return IosCheckBox.this; }
-                @Override public String getName() { return "checked"; }
+                @Override public Object getBean() { return IosSwitch.this; }
+                @Override public String getName() { return "selected"; }
             };
         }
-        return checked;
+        return selected;
     }
 
-    public Color getCheckedColor() { return checkedColor.getValue(); }
-    public void setCheckedColor(final Color COLOR) {
-        if (null == showing) { settings.put("checkedColor", new SimpleObjectProperty<>(COLOR)); return; }
-        checkedColor.setValue(COLOR);
+    public Color getSelectedColor() { return selectedColor.getValue(); }
+    public void setSelectedColor(final Color COLOR) {
+        if (null == showing) { settings.put("selectedColor", new SimpleObjectProperty<>(COLOR)); return; }
+        selectedColor.setValue(COLOR);
     }
-    public ObjectProperty<Color> checkedColorProperty() { return (ObjectProperty<Color>) checkedColor; }
+    public ObjectProperty<Color> selectedColorProperty() { return (ObjectProperty<Color>) selectedColor; }
 
     public double getDuration() { return null == duration ? _duration : duration.get(); }
     public void setDuration(final double DURATION) {
@@ -301,7 +323,7 @@ public class IosCheckBox extends Region {
         if (null == duration) {
             duration = new DoublePropertyBase(_duration) {
                 @Override protected void invalidated() { set(clamp(MIN_DURATION, MAX_DURATION, get())); }
-                @Override public Object getBean() { return IosCheckBox.this; }
+                @Override public Object getBean() { return IosSwitch.this; }
                 @Override public String getName() { return "duration"; }
             };
         }
@@ -326,7 +348,7 @@ public class IosCheckBox extends Region {
                     one.setVisible(get());
                     zero.setVisible(get());
                 }
-                @Override public Object getBean() { return IosCheckBox.this; }
+                @Override public Object getBean() { return IosSwitch.this; }
                 @Override public String getName() { return "showOnOffText"; }
             };
         }
@@ -335,48 +357,81 @@ public class IosCheckBox extends Region {
 
     protected HashMap<String, Property> getSettings() { return settings; }
 
-    private void animateToChecked() {
-        KeyValue kvMainScaleXStart     = new KeyValue(mainArea.scaleXProperty(), 1, Interpolator.EASE_BOTH);
+    private void animateToPreSelect() {
+        KeyValue kvKnobWidthStart   = new KeyValue(knob.widthProperty(), height * 0.89130435, Interpolator.EASE_BOTH);
+        KeyValue kvKnobWidthEnd     = new KeyValue(knob.widthProperty(), height * 0.89130435 * 1.2, Interpolator.EASE_BOTH);
+        KeyValue kvMainScaleXStart  = new KeyValue(mainArea.scaleXProperty(), 1, Interpolator.EASE_BOTH);
+        KeyValue kvMainScaleXEnd    = new KeyValue(mainArea.scaleXProperty(), 0, Interpolator.EASE_BOTH);
+        KeyValue kvMainScaleYStart  = new KeyValue(mainArea.scaleYProperty(), 1, Interpolator.EASE_BOTH);
+        KeyValue kvMainScaleYEnd    = new KeyValue(mainArea.scaleYProperty(), 0, Interpolator.EASE_BOTH);
+        KeyValue kvMainOpacityStart = new KeyValue(mainArea.opacityProperty(), 1, Interpolator.EASE_BOTH);
+        KeyValue kvMainOpacityEnd   = new KeyValue(mainArea.opacityProperty(), 0, Interpolator.EASE_BOTH);
+
+        KeyFrame kf0 = new KeyFrame(Duration.ZERO, kvKnobWidthStart, kvMainScaleXStart, kvMainScaleYStart, kvMainOpacityStart);
+        KeyFrame kf1 = new KeyFrame(Duration.millis(125), kvKnobWidthEnd, kvMainScaleXEnd, kvMainScaleYEnd, kvMainOpacityEnd);
+
+        timeline.getKeyFrames().setAll(kf0, kf1);
+        timeline.play();
+    }
+    private void animateToPreDeselect() {
+        KeyValue kvKnobWidthStart = new KeyValue(knob.widthProperty(), height * 0.89130435, Interpolator.EASE_BOTH);
+        KeyValue kvKnobWidthEnd   = new KeyValue(knob.widthProperty(), height * 0.89130435 * 1.2, Interpolator.EASE_BOTH);
+        KeyValue kvKnobXStart     = new KeyValue(knob.xProperty(), mainArea.getLayoutBounds().getMaxX() - height * 0.89130435, Interpolator.EASE_BOTH);
+        KeyValue kvKnobXEnd       = new KeyValue(knob.xProperty(), mainArea.getLayoutBounds().getMaxX() - height * 0.89130435 * 1.2, Interpolator.EASE_BOTH);
+
+        KeyFrame kf0 = new KeyFrame(Duration.ZERO, kvKnobWidthStart, kvKnobXStart);
+        KeyFrame kf1 = new KeyFrame(Duration.millis(50), kvKnobWidthEnd, kvKnobXEnd);
+
+        timeline.getKeyFrames().setAll(kf0, kf1);
+        timeline.play();
+    }
+
+    private void animateToSelect() {
+        KeyValue kvMainScaleXStart     = new KeyValue(mainArea.scaleXProperty(), mainArea.getScaleX(), Interpolator.EASE_BOTH);
         KeyValue kvMainScaleXEnd       = new KeyValue(mainArea.scaleXProperty(), 0, Interpolator.EASE_BOTH);
-        KeyValue kvMainScaleYStart     = new KeyValue(mainArea.scaleYProperty(), 1, Interpolator.EASE_BOTH);
+        KeyValue kvMainScaleYStart     = new KeyValue(mainArea.scaleYProperty(), mainArea.getScaleY(), Interpolator.EASE_BOTH);
         KeyValue kvMainScaleYEnd       = new KeyValue(mainArea.scaleYProperty(), 0, Interpolator.EASE_BOTH);
-        KeyValue kvMainOpacityStart    = new KeyValue(mainArea.opacityProperty(), 1, Interpolator.EASE_BOTH);
+        KeyValue kvMainOpacityStart    = new KeyValue(mainArea.opacityProperty(), mainArea.getOpacity(), Interpolator.EASE_BOTH);
         KeyValue kvMainOpacityEnd      = new KeyValue(mainArea.opacityProperty(), 0, Interpolator.EASE_BOTH);
         KeyValue kvBackgroundFillStart = new KeyValue(backgroundArea.fillProperty(), Color.rgb(229, 229, 229), Interpolator.EASE_BOTH);
-        KeyValue kvBackgroundFillEnd   = new KeyValue(backgroundArea.fillProperty(), getCheckedColor(), Interpolator.EASE_BOTH);
-        KeyValue kvKnobXStart          = new KeyValue(knob.centerXProperty(), mainArea.getLayoutBounds().getMinX() + knob.getRadius(), Interpolator.EASE_BOTH);
-        KeyValue kvKnobXEnd            = new KeyValue(knob.centerXProperty(), mainArea.getLayoutBounds().getMaxX() - knob.getRadius(), Interpolator.EASE_BOTH);
+        KeyValue kvBackgroundFillEnd   = new KeyValue(backgroundArea.fillProperty(), getSelectedColor(), Interpolator.EASE_BOTH);
+        KeyValue kvKnobXStart          = new KeyValue(knob.xProperty(), mainArea.getLayoutBounds().getMinX(), Interpolator.EASE_BOTH);
+        KeyValue kvKnobXEnd            = new KeyValue(knob.xProperty(), mainArea.getLayoutBounds().getMaxX() - height * 0.89130435, Interpolator.EASE_BOTH);
         KeyValue kvOneOpacityStart     = new KeyValue(one.opacityProperty(), 0, Interpolator.EASE_BOTH);
         KeyValue kvOneOpacityEnd       = new KeyValue(one.opacityProperty(), 1, Interpolator.EASE_BOTH);
         KeyValue kvZeroOpacityStart    = new KeyValue(zero.opacityProperty(), 1, Interpolator.EASE_BOTH);
         KeyValue kvZeroOpacityEnd      = new KeyValue(zero.opacityProperty(), 0, Interpolator.EASE_BOTH);
+        KeyValue kvKnobWidthStart      = new KeyValue(knob.widthProperty(), knob.getWidth(), Interpolator.EASE_BOTH);
+        KeyValue kvKnobWidthEnd        = new KeyValue(knob.widthProperty(), height * 0.89130435, Interpolator.EASE_BOTH);
 
-        KeyFrame kf0 = new KeyFrame(Duration.ZERO, kvMainScaleXStart, kvMainScaleYStart, kvMainOpacityStart, kvBackgroundFillStart, kvKnobXStart, kvOneOpacityStart, kvZeroOpacityStart);
+        KeyFrame kf0 = new KeyFrame(Duration.ZERO, kvMainScaleXStart, kvMainScaleYStart, kvMainOpacityStart, kvBackgroundFillStart, kvKnobXStart, kvOneOpacityStart, kvZeroOpacityStart, kvKnobWidthStart);
         KeyFrame kf1 = new KeyFrame(Duration.millis(getDuration() * 0.5), kvZeroOpacityEnd);
-        KeyFrame kf2 = new KeyFrame(Duration.millis(getDuration()), kvMainScaleXEnd, kvMainScaleYEnd, kvMainOpacityEnd, kvBackgroundFillEnd, kvKnobXEnd, kvOneOpacityEnd);
+        KeyFrame kf2 = new KeyFrame(Duration.millis(getDuration()), kvMainScaleXEnd, kvMainScaleYEnd, kvMainOpacityEnd, kvBackgroundFillEnd, kvKnobXEnd, kvOneOpacityEnd, kvKnobWidthEnd);
 
         timeline.getKeyFrames().setAll(kf0, kf1, kf2);
         timeline.play();
     }
-    private void animateToUnchecked() {
+    private void animateToDeselect() {
         KeyValue kvMainScaleXStart     = new KeyValue(mainArea.scaleXProperty(), 0, Interpolator.EASE_BOTH);
         KeyValue kvMainScaleXEnd       = new KeyValue(mainArea.scaleXProperty(), 1, Interpolator.EASE_BOTH);
         KeyValue kvMainScaleYStart     = new KeyValue(mainArea.scaleYProperty(), 0, Interpolator.EASE_BOTH);
         KeyValue kvMainScaleYEnd       = new KeyValue(mainArea.scaleYProperty(), 1, Interpolator.EASE_BOTH);
         KeyValue kvMainOpacityStart    = new KeyValue(mainArea.opacityProperty(), 0, Interpolator.EASE_BOTH);
         KeyValue kvMainOpacityEnd      = new KeyValue(mainArea.opacityProperty(), 1, Interpolator.EASE_BOTH);
-        KeyValue kvBackgroundFillStart = new KeyValue(backgroundArea.fillProperty(), getCheckedColor(), Interpolator.EASE_BOTH);
+        KeyValue kvBackgroundFillStart = new KeyValue(backgroundArea.fillProperty(), getSelectedColor(), Interpolator.EASE_BOTH);
         KeyValue kvBackgroundFillEnd   = new KeyValue(backgroundArea.fillProperty(), Color.rgb(229, 229, 229), Interpolator.EASE_BOTH);
-        KeyValue kvKnobXStart          = new KeyValue(knob.centerXProperty(), mainArea.getLayoutBounds().getMaxX() - knob.getRadius(), Interpolator.EASE_BOTH);
-        KeyValue kvKnobXEnd            = new KeyValue(knob.centerXProperty(), mainArea.getLayoutBounds().getMinX() + knob.getRadius(), Interpolator.EASE_BOTH);
+        KeyValue kvKnobXStart          = new KeyValue(knob.xProperty(), mainArea.getLayoutBounds().getMaxX() - knob.getWidth(), Interpolator.EASE_BOTH);
+        KeyValue kvKnobXEnd            = new KeyValue(knob.xProperty(), mainArea.getLayoutBounds().getMinX(), Interpolator.EASE_BOTH);
         KeyValue kvOneOpacityStart     = new KeyValue(one.opacityProperty(), 1, Interpolator.EASE_BOTH);
         KeyValue kvOneOpacityEnd       = new KeyValue(one.opacityProperty(), 0, Interpolator.EASE_BOTH);
         KeyValue kvZeroOpacityStart    = new KeyValue(zero.opacityProperty(), 0, Interpolator.EASE_BOTH);
         KeyValue kvZeroOpacityEnd      = new KeyValue(zero.opacityProperty(), 1, Interpolator.EASE_BOTH);
+        KeyValue kvKnobWidthStart      = new KeyValue(knob.widthProperty(), knob.getWidth(), Interpolator.EASE_BOTH);
+        KeyValue kvKnobWidthEnd        = new KeyValue(knob.widthProperty(), height * 0.89130435, Interpolator.EASE_BOTH);
 
-        KeyFrame kf0 = new KeyFrame(Duration.ZERO, kvMainScaleXStart, kvMainScaleYStart, kvMainOpacityStart, kvBackgroundFillStart, kvKnobXStart, kvOneOpacityStart, kvZeroOpacityStart);
+        KeyFrame kf0 = new KeyFrame(Duration.ZERO, kvMainScaleXStart, kvMainScaleYStart, kvMainOpacityStart, kvBackgroundFillStart, kvKnobXStart, kvOneOpacityStart, kvZeroOpacityStart, kvKnobWidthStart);
         KeyFrame kf1 = new KeyFrame(Duration.millis(getDuration() * 0.5), kvOneOpacityEnd);
-        KeyFrame kf2 = new KeyFrame(Duration.millis(getDuration()), kvMainScaleXEnd, kvMainScaleYEnd, kvMainOpacityEnd, kvBackgroundFillEnd, kvKnobXEnd, kvZeroOpacityEnd);
+        KeyFrame kf2 = new KeyFrame(Duration.millis(getDuration()), kvMainScaleXEnd, kvMainScaleYEnd, kvMainOpacityEnd, kvBackgroundFillEnd, kvKnobXEnd, kvZeroOpacityEnd, kvKnobWidthEnd);
 
         timeline.getKeyFrames().setAll(kf0, kf1, kf2);
         timeline.play();
@@ -426,13 +481,16 @@ public class IosCheckBox extends Region {
             zero.setCenterY(height * 0.5);
             zero.setStrokeWidth(height * 0.04);
 
-            knob.setRadius(height * 0.44565217);
-            if (isChecked()) {
-                knob.setCenterX(mainArea.getLayoutBounds().getMaxX() - knob.getRadius());
+            knob.setWidth(height * 0.89130435);
+            knob.setHeight(height * 0.89130435);
+            knob.setArcWidth(height * 0.89130435);
+            knob.setArcHeight(height * 0.89130435);
+            if (isSelected()) {
+                knob.setX(mainArea.getLayoutBounds().getMaxX() - knob.getWidth());
             } else {
-                knob.setCenterX(mainArea.getLayoutBounds().getMinX() + knob.getRadius());
+                knob.setX(mainArea.getLayoutBounds().getMinX());
             }
-            knob.setCenterY(height * 0.5);
+            knob.setY((backgroundArea.getLayoutBounds().getHeight() - knob.getLayoutBounds().getHeight()) * 0.5);
 
             pane.setMaxSize(width, height);
             pane.setPrefSize(width, height);
@@ -443,7 +501,7 @@ public class IosCheckBox extends Region {
 
     // ******************** Style related *************************************
     @Override public String getUserAgentStylesheet() {
-        return IosCheckBox.class.getResource("ios-checkbox.css").toExternalForm();
+        return IosSwitch.class.getResource("ios-switch.css").toExternalForm();
     }
 
     public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() { return FACTORY.getCssMetaData(); }

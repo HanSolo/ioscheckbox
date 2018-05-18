@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package eu.hansolo.fx.ioscheckbox;
+package eu.hansolo.fx.ioswitch;
 
 import javafx.beans.property.Property;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -32,26 +32,26 @@ import java.util.HashMap;
  * Date: 14.05.18
  * Time: 16:30
  */
-public class IosCheckBoxBuilder<B extends IosCheckBoxBuilder<B>> {
+public class IosSwitchBuilder<B extends IosSwitchBuilder<B>> {
     private HashMap<String, Property> properties = new HashMap<>();
 
 
     // ******************** Constructors **************************************
-    protected IosCheckBoxBuilder() {}
+    protected IosSwitchBuilder() {}
 
 
     // ******************** Methods *******************************************
-    public static final IosCheckBoxBuilder create() {
-        return new IosCheckBoxBuilder();
+    public static final IosSwitchBuilder create() {
+        return new IosSwitchBuilder();
     }
 
-    public final B checked(final boolean CHECKED) {
-        properties.put("checked", new SimpleBooleanProperty(CHECKED));
+    public final B selected(final boolean SELECTED) {
+        properties.put("selected", new SimpleBooleanProperty(SELECTED));
         return (B)this;
     }
 
-    public final B checkedColor(final Color COLOR) {
-        properties.put("checkedColor", new SimpleObjectProperty<>(COLOR));
+    public final B selectedColor(final Color COLOR) {
+        properties.put("selectedColor", new SimpleObjectProperty<>(COLOR));
         return (B)this;
     }
 
@@ -140,8 +140,8 @@ public class IosCheckBoxBuilder<B extends IosCheckBoxBuilder<B>> {
     }
 
 
-    public final IosCheckBox build() {
-        final IosCheckBox CONTROL = new IosCheckBox();
+    public final IosSwitch build() {
+        final IosSwitch CONTROL = new IosSwitch();
 
         CONTROL.getSettings().putAll(properties);
 
