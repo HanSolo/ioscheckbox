@@ -15,11 +15,14 @@
  */
 
 .ios-switch {
-    -background-color: rgb(229, 229, 229);
-    -selected-color  : rgb(75, 216, 99);
-    -knob-color      : rgb(255, 255, 255);
+    -background-color : rgb(229, 229, 229);
+    -dark-main-color  : rgb(0, 0, 0);
+    -selected-color   : rgb(75, 216, 99);
+    -knob-color       : rgb(255, 255, 255);
 }
 
+
+/* Bright scheme */
 .ios-switch .background-area {
     -fx-fill: -background-color;
 }
@@ -27,6 +30,7 @@
 .ios-switch .one {
     -fx-fill: rgb(255, 255, 255);
 }
+
 
 .ios-switch .main-area {
     -fx-fill: linear-gradient(from 0% 0% to 100% 0%, rgb(244, 244, 244) 35%, rgb(255, 255, 255) 80%);
@@ -38,5 +42,29 @@
 }
 
 .ios-switch .knob {
+    -fx-fill: -knob-color;
+}
+
+
+/* Dark scheme */
+.ios-switch:dark .background-area {
+    -fx-fill: -background-color;
+}
+
+.ios-switch:dark .one {
+    -fx-fill: rgb(255, 255, 255);
+}
+
+
+.ios-switch:dark .main-area {
+    -fx-fill: -dark-main-color;
+}
+
+.ios-switch:dark .zero {
+    -fx-fill  : null;
+    -fx-stroke: rgb(175, 175, 175);
+}
+
+.ios-switch:dark .knob {
     -fx-fill: -knob-color;
 }

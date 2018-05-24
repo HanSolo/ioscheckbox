@@ -35,6 +35,7 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.css.CssMetaData;
+import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import javafx.css.StyleableProperty;
 import javafx.css.StyleablePropertyFactory;
@@ -62,18 +63,20 @@ import java.util.List;
  */
 @DefaultProperty("children")
 public class IosSwitch extends Region {
-    public  static final double                              MIN_DURATION     = 10;
-    public  static final double                              MAX_DURATION     = 500;
-    private static final double                              PREFERRED_WIDTH  = 38;
-    private static final double                              PREFERRED_HEIGHT = 23;
-    private static final double                              MINIMUM_WIDTH    = 20;
-    private static final double                              MINIMUM_HEIGHT   = 12;
-    private static final double                              MAXIMUM_WIDTH    = 1024;
-    private static final double                              MAXIMUM_HEIGHT   = 1024;
-    private static final double                              ASPECT_RATIO     = PREFERRED_HEIGHT / PREFERRED_WIDTH;
-    private static final long                                LONG_PRESS_TIME  = 200_000_000l;
-    private static final StyleablePropertyFactory<IosSwitch> FACTORY          = new StyleablePropertyFactory<>(Region.getClassCssMetaData());
+    public  static final double                              MIN_DURATION      = 10;
+    public  static final double                              MAX_DURATION      = 500;
+    private static final double                              PREFERRED_WIDTH   = 38;
+    private static final double                              PREFERRED_HEIGHT  = 23;
+    private static final double                              MINIMUM_WIDTH     = 20;
+    private static final double                              MINIMUM_HEIGHT    = 12;
+    private static final double                              MAXIMUM_WIDTH     = 1024;
+    private static final double                              MAXIMUM_HEIGHT    = 1024;
+    private static final double                              ASPECT_RATIO      = PREFERRED_HEIGHT / PREFERRED_WIDTH;
+    private static final long                                LONG_PRESS_TIME   = 200_000_000l;
+    private static final StyleablePropertyFactory<IosSwitch> FACTORY           = new StyleablePropertyFactory<>(Region.getClassCssMetaData());
+    private static final PseudoClass                         DARK_PSEUDO_CLASS = PseudoClass.getPseudoClass("dark");
     private        final StyleableProperty<Color>            selectedColor;
+    private              BooleanProperty                     dark;
     private              double                              width;
     private              double                              height;
     private              DropShadow                          dropShadow;
@@ -242,6 +245,8 @@ public class IosSwitch extends Region {
                     } // Control specific settings
                     else if ("selectedColor".equals(key)) {
                         setSelectedColor(((ObjectProperty<Color>) settings.get(key)).get());
+                    } else if("dark".equals(key)) {
+                        setDark(((BooleanProperty) settings.get(key)).get());
                     } else if ("showOnOffText".equals(key)) {
                         setShowOnOffText(((BooleanProperty) settings.get(key)).get());
                     } else if ("duration".equals(key)) {
@@ -310,6 +315,26 @@ public class IosSwitch extends Region {
     }
     public ObjectProperty<Color> selectedColorProperty() { return (ObjectProperty<Color>) selectedColor; }
 
+    public final boolean isDark() {
+        return null == dark ? false : dark.get();
+    }
+    public final void setDark(final boolean DARK) {
+        if (null == showing) { settings.put("dark", new SimpleBooleanProperty(DARK)); return; }
+        darkProperty().set(DARK);
+    }
+    public final BooleanProperty darkProperty() {
+        if (null == dark) {
+            dark = new BooleanPropertyBase() {
+                @Override protected void invalidated() {
+                    pseudoClassStateChanged(DARK_PSEUDO_CLASS, get());
+                }
+                @Override public Object getBean() { return IosSwitch.this; }
+                @Override public String getName() { return "dark"; }
+            };
+        }
+        return dark;
+    }
+
     public double getDuration() { return null == duration ? _duration : duration.get(); }
     public void setDuration(final double DURATION) {
         if (null == showing) { settings.put("duration", new SimpleDoubleProperty(DURATION)); return; }
@@ -367,8 +392,16 @@ public class IosSwitch extends Region {
         KeyValue kvMainOpacityStart = new KeyValue(mainArea.opacityProperty(), 1, Interpolator.EASE_BOTH);
         KeyValue kvMainOpacityEnd   = new KeyValue(mainArea.opacityProperty(), 0, Interpolator.EASE_BOTH);
 
-        KeyFrame kf0 = new KeyFrame(Duration.ZERO, kvKnobWidthStart, kvMainScaleXStart, kvMainScaleYStart, kvMainOpacityStart);
-        KeyFrame kf1 = new KeyFrame(Duration.millis(125), kvKnobWidthEnd, kvMainScaleXEnd, kvMainScaleYEnd, kvMainOpacityEnd);
+        KeyFrame kf0;
+        KeyFrame kf1;
+
+        if (isDark()) {
+            kf0 = new KeyFrame(Duration.ZERO, kvKnobWidthStart);
+            kf1 = new KeyFrame(Duration.millis(125), kvKnobWidthEnd);
+        } else {
+            kf0 = new KeyFrame(Duration.ZERO, kvKnobWidthStart, kvMainScaleXStart, kvMainScaleYStart, kvMainOpacityStart);
+            kf1 = new KeyFrame(Duration.millis(125), kvKnobWidthEnd, kvMainScaleXEnd, kvMainScaleYEnd, kvMainOpacityEnd);
+        }
 
         timeline.getKeyFrames().setAll(kf0, kf1);
         timeline.play();

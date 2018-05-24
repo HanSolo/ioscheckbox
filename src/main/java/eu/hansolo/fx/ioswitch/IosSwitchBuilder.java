@@ -55,6 +55,11 @@ public class IosSwitchBuilder<B extends IosSwitchBuilder<B>> {
         return (B)this;
     }
 
+    public final B dark(final boolean DARK) {
+        properties.put("dark", new SimpleBooleanProperty(DARK));
+        return (B)this;
+    }
+
     public final B showOnOffText(final boolean SHOW) {
         properties.put("showOnOffText", new SimpleBooleanProperty(SHOW));
         return (B)this;

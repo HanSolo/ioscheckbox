@@ -18,6 +18,9 @@ package eu.hansolo.fx.ioswitch;
 
 import javafx.application.Application;
 import javafx.geometry.Insets;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
@@ -33,6 +36,7 @@ public class Main extends Application {
     private IosSwitch checkBox1;
     private IosSwitch checkBox2;
     private IosSwitch checkBox3;
+    private IosSwitch checkBox4;
 
     @Override public void init() {
         checkBox1 = IosSwitchBuilder.create()
@@ -49,10 +53,16 @@ public class Main extends Application {
                                     .selectedColor(Color.CORNFLOWERBLUE)
                                     .showOnOffText(true)
                                     .build();
+        checkBox4 = IosSwitchBuilder.create()
+                                    .prefSize(76, 46)
+                                    .selected(true)
+                                    .dark(true)
+                                    .build();
+        checkBox4.setBackground(new Background(new BackgroundFill(Color.rgb(102, 102, 102), CornerRadii.EMPTY, Insets.EMPTY)));
     }
 
     @Override public void start(Stage stage) {
-        VBox pane = new VBox(10, checkBox1, checkBox2, checkBox3);
+        VBox pane = new VBox(10, checkBox1, checkBox2, checkBox3, checkBox4);
         pane.setPadding(new Insets(10));
 
         Scene scene = new Scene(pane);
